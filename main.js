@@ -11,6 +11,9 @@ import {
 import { midi } from "https://deno.land/x/deno_midi/mod.ts";
 
 import {
+    f_a_v__prompt
+}from "https://deno.land/x/terminal_prompt_functions@0.6/mod.js"
+import {
     o_s_name_class_O_class
 }from "./classes.module.js"
 
@@ -150,8 +153,9 @@ o_state.o_button__toggler = new o_s_name_class_O_class.O_button(
         //     parseInt(Math.random()*o_state.a_o_color_from_palette.length)
         // ]
         let n_idx = (o_state.a_o_mode.indexOf(o_state.o_mode)+1)%o_state.a_o_mode.length;
+        o_state.o_mode__last = o_state.o_mode;
         o_state.o_mode = o_state.a_o_mode[n_idx];
-        console.log(o_state.o_mode)
+        // console.log(o_state.o_mode)
 
         // console.log(o_state.a_o_color_from_palette)
         
@@ -171,29 +175,53 @@ for(let n = 0; n < 128; n+=1){
 
 /// end init data 
 
-
-
-
+let f_o_port_selected_from_a_o_port = function(a_o_port){
+    let a_v = f_a_v__prompt(
+        a_o_port,
+        (a_v)=>{
+            return a_v.map(
+                (o,n_idx)=>{return `${n_idx}: ${o.s_name}`}
+            ).join('\n')
+        },
+        (a_v, s_prompt_input)=>{
+            return a_v.filter(
+                (v, n_idx)=>{
+                    function isNumeric(value) {
+                        return /^-?\d+$/.test(value);
+                    }
+                    if(isNumeric(s_prompt_input)){
+                        return parseInt(s_prompt_input)== n_idx
+                    }
+                    return v.s_name.toLowerCase() == (s_prompt_input.toLowerCase())
+                }
+            )
+        }, 
+        null,
+        (s)=>`'${s}' invalid input`
+    );
+    return a_v[0]
+}
+class O_port{
+    constructor(s_name, n_idx){
+        this.s_name = s_name
+        this.n_idx = n_idx
+    }
+}
 const midi_out = new midi.Output();
 const midi_in = new midi.Input();
-console.log(midi_out.getPorts());
+let a_o_port_in = midi_in.getPorts().map((s, n_idx)=>{return new O_port(s, n_idx)});
+let o_port_in_selected = f_o_port_selected_from_a_o_port(a_o_port_in);
+let a_o_port_out = midi_out.getPorts().map((s, n_idx)=>{return new O_port(s, n_idx)});
+let o_port_out_selected = f_o_port_selected_from_a_o_port(a_o_port_out);
 
-midi_out.openPort(2);
-midi_in.openPort(2);
+midi_in.openPort(o_port_in_selected.n_idx);
+midi_out.openPort(o_port_out_selected.n_idx);
 
 midi_in.on("message", ({ message, deltaTime }) => {
     let o_button = o_state.a_o_button.find(
         o=>o.n_number == message?.data?.note
     )
-    if(o_button){
-        o_state.o_button = o_button
-        o_button.b_down = message?.data?.velocity == 127
-        if(o_button.b_down){
-            o_button.f_on_down()
-        }else{
-            o_button.f_on_up()
-        }
-    }
+
     if(o_state.o_mode == o_state.o_mode__update_mouse_position){
         if(!o_button){
             o_button = new o_s_name_class_O_class.O_button(
@@ -213,16 +241,53 @@ midi_in.on("message", ({ message, deltaTime }) => {
                             );
                         }
                     }
-
+                    if(this?.n_ms__remaining_because_new_mouse_position_was_set_used_for_flickering_to_indicate_store > 0){
+                        if(!this.o_color_from_palette__for_flickering){
+                            this.o_color_from_palette__for_flickering = this.o_color_from_palette
+                        }
+                        this.n_ms__remaining_because_new_mouse_position_was_set_used_for_flickering_to_indicate_store
+                         -= o_state.n_ms_diff;   
+                         this.o_color_from_palette = (
+                             f_b_toggle_after_mod_n_ms(
+                                 o_state.n_ms, 
+                                 f_n_close_ms_to_sync_with_fps(111, o_state.n_fps)// this will get the closest possible 
+                             )
+                         ) 
+                             ? o_state.o_color_from_palette__off
+                             : this.o_color_from_palette__for_flickering;
+                        if(this.n_ms__remaining_because_new_mouse_position_was_set_used_for_flickering_to_indicate_store < 0){
+                            // reset the original color
+                           this.o_color_from_palette = this.o_color_from_palette__for_flickering;
+                        }
+                    }
                 },
-                function(){
+                async function(){
                     this.n_ms_down = o_state.n_ms;
                     if(o_state.o_mode == o_state.o_mode__mouse_clicker){
-                        o_robot_js.moveMouse(...this?.o_trn_mouse.a_n_comp)
-                        o_robot_js.mouseClick();
+                        for(let o_trn of this?.a_o_trn_mouse){
+                            o_robot_js.moveMouse(...o_trn.a_n_comp)
+                            await f_sleep_ms(22);
+                            o_robot_js.mouseClick();
+                            await f_sleep_ms(22);
+                        }
+
                     }
                     if(o_state.o_mode == o_state.o_mode__update_mouse_position){
-                        this.o_trn_mouse = o_state.o_trn_mouse.clone();
+                        if(
+                            // o_state.o_mode__last != o_state.o_mode__update_mouse_position
+                            // || 
+                            !Array.isArray(this.a_o_trn_mouse)
+                        ){
+                            this.a_o_trn_mouse = []
+                        }
+                        console.log('pad donw')
+                        console.log(o_state)
+                        console.log(o_state.o_trn_mouse.clone())
+                        this.a_o_trn_mouse.push(
+                            o_state.o_trn_mouse.clone()
+                        )
+                        console.log(this.a_o_trn_mouse)
+                        this.n_ms__remaining_because_new_mouse_position_was_set_used_for_flickering_to_indicate_store = 500;
                     }
                     if(o_state.o_mode == o_state.o_mode__change_color){
                         let n_idx = o_state.a_o_color_from_palette__available_for_selecting.indexOf(
@@ -234,6 +299,11 @@ midi_in.on("message", ({ message, deltaTime }) => {
                             n_idx_next
                         ]
                     }
+                    if(!this.n){
+                        this.n = 0;
+                    }
+                    this.n = (this.n+1)%127;
+                    this.o_color_from_palette = new o_s_name_class_O_class.O_color_from_palette('', this.n);
                 },
                 function(){
                     this.n_ms_down = false;
@@ -246,7 +316,15 @@ midi_in.on("message", ({ message, deltaTime }) => {
         }
     }
     
-
+    if(o_button){
+        o_state.o_button = o_button
+        o_button.b_down = message?.data?.velocity == 127
+        if(o_button.b_down){
+            o_button.f_on_down()
+        }else{
+            o_button.f_on_up()
+        }
+    }
     // console.log(message)
     // console.log(o_button)
   });
