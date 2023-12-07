@@ -1,3 +1,4 @@
+
 import { midi } from "https://deno.land/x/deno_midi/mod.ts";
 import {
     O_vec2
@@ -98,7 +99,7 @@ let o_port_out_selected = f_o_port_selected_from_a_o_port(a_o_port_out);
 midi_in.openPort(o_port_in_selected.n_idx);
 midi_out.openPort(o_port_out_selected.n_idx);
 
-let n_channel_lightness_max = 128;// this is special normally we have 255 values but here maybe hardware restricted only half as much
+let n_channel_lightness_max = 127;// this is special normally we have 255 values but here maybe hardware restricted only half as much
 
 let n_lighting_type_rgb = 3;
 let n_idx_led = 11; // 11 is the index of the led in the bottom left corner
@@ -134,39 +135,41 @@ let f_o_trn_from_n_pad_number = function(
 
 let o_scl = new O_vec2(9,9); // we have a 9x9 matrix
 
-let n_fps = 240;
-for(let n_t = 0; n_t< 1000000; n_t+=1){
+midi_in.on("message", ({ message, deltaTime }) => {
 
-    await f_sleep_ms(1000/n_fps);
+    console.log(message);
+})
 
+let f_upade_launchpad_from_a_n_u8 = function(
+    a_n_u8,
+    o_scl_input,
+){
+    let o_scl_lp = new O_vec2(9,9);
+    // f_sleep_ms(1000/30)
+    console.log('render image')
     midi_out.sendMessage(
         new Uint8Array(
-
             [
                 ...a_n_u8_sysex_prefix,
-                ...new Array(o_scl.compsmul())
+                ...new Array(o_scl_lp.compsmul())
                     .fill(0)
-                    .map((v, n_idx)=>{
-                        let o_trn = o_scl.from_index(n_idx);
-                        console.log(o_trn)
-                        let n_pad_number = f_n_pad_number_from_xy(o_trn.n_x, o_trn.n_y);
-                        // console.log(n_pad_number)
-                        let o_trn2 = f_o_trn_from_n_pad_number(n_pad_number);
-                        console.log(o_trn2)
-                        console.log('--')
-                        let a_n_u8_color = f_a_n_nor__rgb__from_hsl(
-                            ((n_t*0.01)
-                            +n_pad_number*0.005
-                            )%1,
-                             0.5,
-                             0.5)//(n_t*0.001)%1)
-                            .map(n=>parseInt(n*n_channel_lightness_max));
-                            // console.log(a_n_u8_color)
-
+                    .map((v, n_idx_lp)=>{
+                        let o_trn_lp = o_scl_lp.from_index(n_idx_lp);
+                        let o_trn_lp_nor = o_trn_lp.div(o_scl_lp);
+                        let o_trn_big = o_trn_lp_nor.mul(o_scl_input);
+                        let n_idx_big = o_trn_big.to_index(o_scl);
+                        let n_pad_number = f_n_pad_number_from_xy(...o_trn_lp.a_n_comp);
+                        let a_n__color = [
+                            parseInt((a_n_u8[(n_idx_lp*4)+0]/255)*n_channel_lightness_max),
+                            parseInt((a_n_u8[(n_idx_lp*4)+1]/255)*n_channel_lightness_max),
+                            parseInt((a_n_u8[(n_idx_lp*4)+2]/255)*n_channel_lightness_max),
+                        ]
+                        // console.log(a_n__color)
+                        console.log(n_pad_number)
                         return [
                             n_lighting_type_rgb, 
                             n_pad_number, 
-                            ...a_n_u8_color,
+                            ...a_n__color
                         ]
                     }).flat(),
 
@@ -175,8 +178,10 @@ for(let n_t = 0; n_t< 1000000; n_t+=1){
     
         )
     )
-}
-midi_in.on("message", ({ message, deltaTime }) => {
 
-    console.log(message);
-})
+
+}
+
+export {
+    f_upade_launchpad_from_a_n_u8
+}
