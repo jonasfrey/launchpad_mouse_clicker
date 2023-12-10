@@ -7,39 +7,50 @@ class O_mode{
         this.s_description = s_description
     }
 }
-class O_color_from_palette{
+class O_mouse_action{
     constructor(
-        s_name, 
-        n_number
+        o_trn,
+        b_click, 
     ){
-        this.s_name = s_name
-        this.n_number = n_number
+        this.o_trn = o_trn
+        this.b_click = b_click
+    }
+}
+
+class O_lighting_type{
+    constructor(s_name, n){
+        this.s_name = s_name, 
+        this.n = n
     }
 }
 class O_button{
     constructor(
-        n_number, 
+        n_pad_number, 
+        n_note, 
+        o_trn, 
         b_down,
-        o_color_from_palette,  
+        o_hsl,  
+        f_init,
         f_render, 
         f_on_down, 
         f_on_up
     ){
-        this.n_number = n_number
+        this.n_pad_number = n_pad_number
+        this.n_note = n_note
+        this.o_trn = o_trn,
         this.b_down = b_down
-        this.o_color_from_palette = o_color_from_palette 
+        this.o_hsl = o_hsl 
+        this.f_init = f_init
         this.f_render = f_render
         this.f_on_down = f_on_down 
         this.f_on_up = f_on_up
+        this.f_init()
     }
 }
-let o_s_name_class_O_class = {
-    O_button, 
-    O_color_from_palette,
-    O_mode, 
-}
-let a_o_class = Object.values(o_s_name_class_O_class);
+
 export {
-    a_o_class,
-    o_s_name_class_O_class,
+    O_lighting_type,
+    O_button, 
+    O_mode, 
+    O_mouse_action
 }
