@@ -24,7 +24,8 @@ import * as o_mod_classes from "./classes.module.js";
 import {
     O_button, 
     O_lighting_type, 
-    O_mode
+    O_mode, 
+    O_mouse_action
 } from "./classes.module.js"
 import { 
     o_hsl__blue, o_hsl__cyan, o_hsl__green, o_hsl__magenta, o_hsl__red, o_hsl__yellow
@@ -111,20 +112,15 @@ let o_state = Object.assign(
                 }
 
                 if(o_state.o_mode == o_state.o_mode__mouse_clicker){
-                    this.o_hsl = o_hsl_white_bright;
+                    this.o_hsl = o_hsl_white_bright
                 }
         
                 if(o_state.o_mode == o_state.o_mode__update_mouse_action){
-                    this.o_hsl = 
-                    
-                    (
-                        f_b_toggle_after_mod_n_ms(
-                            o_state.n_ms, 
-                            f_n_close_ms_to_sync_with_fps(333, o_state.n_fps)// this will get the closest possible 
-                        )
-                    ) 
-                        ? o_hsl_black
-                        : o_hsl_white_bright;
+                    this.o_hsl = new O_vec3(
+                        0, 
+                        0.0, 
+                        (Math.sin(o_state.n_ms*0.01)*.5+.5)
+                    )
                 }
                 if(o_state.o_mode == o_state.o_mode__change_color){
                     let n_t = (o_state.n_ms * (1/500))%1;
@@ -230,8 +226,8 @@ midi_in.on("message", ({ message, deltaTime }) => {
                     this.n_saturation = o_hsl__yellow[1]
                     this.n_lightness = o_hsl__yellow[2]
                     this.a_o_mouse_action = []
-                    this.n_ms_diff_max_for_storing_mouse_translation = 500
-                    this.n_ms_diff_max_for_storing_mouse_translation_and_click = 1000
+                    this.n_ms_diff_max_for_storing_mouse_translation = 0
+                    this.n_ms_diff_max_for_storing_mouse_translation_and_click = 500
                     this.n_ms_diff_max_for_delete = 100;
 
                 },
@@ -253,6 +249,7 @@ midi_in.on("message", ({ message, deltaTime }) => {
                                 );
                             }
                         }
+
                     }
                     // if(this?.n_ms__remaining_because_new_mouse_position_was_set_used_for_flickering_to_indicate_store > 0){
 
@@ -302,6 +299,17 @@ midi_in.on("message", ({ message, deltaTime }) => {
 
                 },
                 function(){
+                    let n_ms_diff = o_state.n_ms - this?.n_ms_down;
+
+                    if(o_state.o_mode == o_state.o_mode__update_mouse_action){
+                        this.a_o_mouse_action.push(
+                            new O_mouse_action(
+                                o_state.o_trn_mouse.clone(),
+                                (n_ms_diff > this.n_ms_diff_max_for_storing_mouse_translation_and_click)
+                            )
+                        )
+                    }
+
                     this.n_ms_down = false;
                     this.o_hsl = this.o_hsl__last
                 }

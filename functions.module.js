@@ -46,17 +46,22 @@ let f_o_trn_from_n_pad_number = function(
 let f_n_pad_number_from_n_note = function(
     n_note
 ){
+    let n_add = 0;
     if(n_note >= 68 && n_note <= 99){
         n_note -= (4 * 8);
+        n_add = 4;
     }
     if(n_note >= 36 && n_note <= 67){
+
         return f_n_pad_number_from_xy(
             n_note % 4,
             parseInt((n_note-36)/4)
-        )
+        )+n_add
     }
+
     return n_note
 }
+console.log(f_n_pad_number_from_n_note(37));
 export {
     f_n_note_from_n_pad_number,
     f_n_pad_number_from_xy,
